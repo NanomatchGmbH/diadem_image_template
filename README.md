@@ -4,7 +4,7 @@ This repository contains the minimal code required to create an image required t
 Extra scripts / binaries you require will be included in the diadem\_image\_template/opt folder automatically.
 
 ## Getting started
-Clone this repository and rename it. Edit project\_config.sh and give it an appropiate name, such as `xtb\_example`.
+Clone this repository and rename it. Edit project\_config.sh and give it an appropiate name, such as `xtb_example`.
 
 ## Diadem Payload
 On the live server, your container will be executed in a working directory with the two files
@@ -118,4 +118,4 @@ This will alllow automatic tagging of generated images. Everytime you want to no
 Inside the diadem\_image\_template folder: Make sure there is nothing uncommited in the repository and call `../scripts/build_docker_image.sh`. The image will be tagged with the output of git describe (i.e. the most current tag modified).
 
 ### Testing the image
-The image should now contain all dependencies required to execute your scientific software. If you run pytest, the image will be tested with all combinations of Calculators defined in `Calculators/*.yml` and `Molecules` defined in tests/inputs/molecules`. For every test done, a folder tests/calculator/molecule will be generated. If the test was successful, the generated result.yml will be put into this folder. If you move result.yml to result_reference.yml and add it to the repository, the next time a test is run, the two dictionaries will be compared and an error generated if they differ.
+The image should now contain all dependencies required to execute your scientific software. If you run pytest, the image will be tested with all combinations of Calculators defined in `Calculators/*.yml` and `Molecules` defined in tests/inputs/molecules`. For every test done, a folder tests/calculator/molecule will be generated. If the test was successful, the generated result.yml will be put into this folder. Check it and add it to the repository, the next time a test is run, the two dictionaries will be compared and an error generated if they differ.
