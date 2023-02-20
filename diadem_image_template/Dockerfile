@@ -1,0 +1,9 @@
+FROM mambaorg/micromamba:1.3.1
+
+# We copy over the lockfile and install:
+COPY --chown=$MAMBA_USER:$MAMBA_USER env.lock /tmp/env.lock
+RUN micromamba install --name base --yes --file /tmp/env.lock && \
+    micromamba clean --all --yes
+
+# We also copy over the prepared local opt folder:
+COPY --chown=$MAMBA_USER:$MAMBA_USER ./opt/. /opt/
