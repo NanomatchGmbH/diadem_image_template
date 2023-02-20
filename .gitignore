@@ -127,3 +127,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+diadem_image_template/env.lock
