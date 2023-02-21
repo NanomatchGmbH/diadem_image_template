@@ -4,10 +4,11 @@ This repository contains the minimal code required to create an image required t
 Extra scripts / binaries you require will be included in the diadem\_image\_template/opt folder automatically.
 
 ## Getting started
-Use this repository as a template for your repository and rename it. Edit project\_config.sh and give it an appropiate name, such as `xtb_example`. Install docker and start it (sudo systemctl enable docker, sudo systemctl start docker). Add yourself to the docker group (sudo gpasswd -a your\_user\_name docker). Reboot to make sure these changes took effect.
+Use this repository as a template for your repository and rename it. Edit project\_config.sh to adapt the NAME according to your project, such as `xtb_example`. You will need docker installed and the docker daemon running to go through this tutorial. Therefore, install docker and start it (sudo systemctl enable docker, sudo systemctl start docker). Add yourself to the docker group (sudo gpasswd -a your\_user\_name docker). Reboot to make sure these changes took effect.
 
 ## Diadem Payload
-On the live server, your container will be executed in a working directory with the two files
+### Input and output files
+On the live server, your container will be executed in a working directory with the two input files
 
 * molecule.yml, containing the smiles code
 * calculator.yml, containing information about the calculation to be done
@@ -15,7 +16,34 @@ On the live server, your container will be executed in a working directory with 
 These files are directly taken from the Diadem databases outlined in the following image:
 ![](docs/images/tablestructure.png)
 
-Define the Calculators.yml your calculator will receive. For our XTB example, we will use the following:
+In production runs, on-demand computations will be executed using only these two files as input. Make sure your tool is designed accordingly. To develop your image, define the calculator(s) required for this run and save in calculators/your_calculator.yml, according to the definition of calculators provided in the diadem design document. 
+
+```
+calculator_id: your_calculator_id
+provides:
+- property_type_1_provided_by_calculator
+- property_type_2_provided_by_calculator
+- - ... 
+specifications:
+  some_setting: some_value
+```
+
+For a DFT Payload specifications could include Basis, Functional, convergence criteria, etc. It does not have to be a flat dictionary. The only requirement is that it is serializable into a list of dicts of dicts of lists... of python base types. Your payload then runs and your job must output a file called result.yml according to the following spec:
+
+```
+molecule_id:
+  this_property_type:
+    value: 5.0
+    result:
+      free_form_list: [ A, B, C ]
+      free_form_dict: { A: B, C:D }
+  this_other_property_tpye:
+    value: 5.0
+```
+where molecule_id is the id of the input compound from the diadem database, this_(other_)property_type are the property-types defined in the provides field of the calculator, e.g. HOMO or LUMO in our example, and value has to be orderable (int, float, string, but not list of string). result is free form and includes additional data about this calculation. result is optional and can be omitted.
+
+### Example: calculator and sample output of this XTB run
+For our XTB example, we store the following lines in calculators/xtb_example.yml:
 
 ```
 calculator_id: XTB_example
@@ -25,22 +53,18 @@ provides:
 specifications:
   numsteps: 200
 ```
-For a DFT Payload specifications could include Basis, Functional, convergence criteria, etc. It does not have to be a flat dictionary. The only requirement is that it is serializable into a list of dicts of dicts of lists... of python base types. Your payload then runs and must output a file called result.yml according to the following spec:
 
+The executable of this example (see below) correspondingly produces a file of the format:
 ```
 molecule_id:
   HOMO:
     value: 5.0
-    result:
-      free_form_list: [ A, B, C ]
-      free_form_dict: { A: B, C:D }
   LUMO:
     value: 5.0
 ```
-value has to be orderable (int, float, string, but not list of string). result is free form and includes additional data about this calculation. result is optional and can be omitted.
 
 ## Setting up the environment
-Edit the diadem\_image\_template/env.yml file. This contains the specification of the conda environment, which will be rolled out inside the docker image. Only include direct dependencies in this file, i.e.: If you would include  matplotlib, which require the expat library, only include matplotlib. If you want a good env file for starting, you can prepare a conda environment with the tools you need and export it. You will need docker installed and the docker daemon running to go through this tutorial.
+Edit the diadem\_image\_template/env.yml file. This contains the specification of the conda environment, which will be rolled out inside the docker image. Only include direct dependencies in this file, i.e.: If you would include  matplotlib, which require the expat library, only include matplotlib. If you want a good env file for starting, you can prepare a conda environment with the tools you need and export it (see the following example). 
 
 ### Example: XTB and openbabel environment
 We will now generate an environment containing XTB and openbabel. To start we installed Mambaforge for our architecture from here: https://github.com/conda-forge/miniforge . and set up an environment with the following script:
@@ -99,8 +123,15 @@ dependencies:
   - xtb=6.6.0
   - pyyaml=6.0.* <- always include yaml, you need it to parse the input files.
 ````
-We will edit this file to only include dependencies, we require directly and packages we care about, such as packages our own scripts requires (e.g. the python version). Note that we whitelisted all newer python point releases and also removed the build string (such as h031607). This will be fixed in the next stage. When you are happy with your environment file, move it to the diadem\_image\_template subfolder and commit it to the repository. If you require extra scripts or binaries put them in the diadem\_image\_template/opt subfolder. Remember to consider that you have to include the dependencies for your binaries in the conda env file. Next edit the file entrypoint.sh in the diadem\_image\_template subdirectory to start your program and generate the result.yml file. You can also generate an additional workdir\_bundle.tar.gz file, which will be staged out together with the actual results. This is meant for debugging purposes, so keep it small.
+We will edit this file to only include dependencies, we require directly and packages we care about, such as packages our own scripts requires (e.g. the python version). Note that we whitelisted all newer python point releases and also removed the build string (such as h031607). This will be fixed in the next stage. When you are happy with your environment file, move it to the diadem\_image\_template subfolder and commit it to the repository. 
 
+
+## Entrypoint for the payload
+Your main entrypoint to execute your code is the file entrypoint.sh in the diadem\_image\_template subdirectory. Modify this file such that your code to read the input files and create a results.yml as specified above is executed by this entrypoint. 
+If you require extra scripts or binaries put them in the diadem\_image\_template/opt subfolder. Remember to consider that you have to include the dependencies for your binaries in the conda env file. You can also generate an additional workdir\_bundle.tar.gz file, which will be staged out together with the actual results. This is meant for debugging purposes, so keep it small.
+
+
+### Example: Executable for running xtb with molecule.yml and calculator.yml as input
 In our example, we will change the entrypoint in the following way:
 ````{verbatim}
 #!/bin/bash
@@ -170,7 +201,7 @@ with open("result.yml",'wt') as outfile:
 
 ````
 
-### Locking the environment
+## Locking the environment
 Inside the diadem\_image\_template folder: The env file is the file specifying, what you need. For operational stability, we will now lock down, how the package manager fulfilled this request and record it. Call the script `../scripts/create_lock.sh`. Docker will now build a temporary image, install the environment and output an env.lock file. Commit it to the repository.
 
 ### Push a git tag
@@ -184,7 +215,7 @@ To allow for automatic versioning of the image, add a tag, like this:
 This will alllow automatic tagging of generated images. Everytime you want to not only build an image (for example for testing) but also upload it (for deployment on the diadem infrastructure), you need to set an explicit tag with a version higher than the last one and push it like above. If you want to know the current version, just use `git describe` (after the first tag).
 
 ### Building the image
-Inside the diadem\_image\_template folder: Make sure there is nothing uncommited in the repository and call `../scripts/build_docker_image.sh`. The image will be tagged with the output of git describe (i.e. the most current tag modified).
+Inside the diadem\_image\_template folder: Make sure there is nothing uncommited in the repository and call `../scripts/build_image.sh`. The image will be tagged with the output of git describe (i.e. the most current tag modified).
 
 ### Testing the image
 The image should now contain all dependencies required to execute your scientific software. If you run pytest, the image will be tested with all combinations of Calculators defined in `Calculators/*.yml` and `Molecules` defined in tests/inputs/molecules`. For every test done, a folder tests/calculator/molecule will be generated. If the test was successful, the generated result.yml will be put into this folder. Check it and add it to the repository, the next time a test is run, the two dictionaries will be compared and an error generated if they differ.
