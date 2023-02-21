@@ -117,7 +117,7 @@ python /opt/get_xtb_homo.py
 find . -type f -size -500k -print0 | xargs -0 tar czf workdir_bundle.tar.gz
 ````
 
-We are also going to add diadem\_image\_template/get\_xtb\_homo.py with the following content:
+We are also going to add diadem\_image\_template/opt/get\_xtb\_homo.py with the following content:
 ````{verbatim}
 
 #!/usr/bin/env python3
