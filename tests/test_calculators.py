@@ -9,13 +9,13 @@ import yaml
 
 
 def docker_run_helper(image_name: str, workdir: pathlib.Path, molecule: pathlib.Path, calculator: pathlib.Path):
-    run_command = ["docker","run","--rm", image_name,f"-v{workdir}:/home/diadem",f"-v{molecule}:/home/diadem/molecule.yml",f"-v{calculator}:/home/diadem/calculator.yml"]
+    run_command = ["docker","run","--rm", "-v", f"{workdir}:/tmp", "-v",  f"{molecule}:/tmp/molecule.yml","-v", f"{calculator}:/tmp/calculator.yml","--workdir","/tmp", image_name]
     output = subprocess.check_output(run_command,encoding="utf8")
 
 @pytest.fixture
 def image_name():
     image_name = subprocess.check_output(["git","describe"], encoding="utf8")
-    return image_name
+    return image_name.strip()
 
 def molecules() -> list[pathlib.Path]:
     molpath = pathlib.Path(__file__).parent / "inputs" / "molecules"
@@ -32,7 +32,7 @@ def calculators() -> list[pathlib.Path]:
 def test_calculators(molecule: pathlib.Path, calculator: pathlib.Path, image_name: str) -> None:
     output_directory = pathlib.Path(__file__).parent / "test_outputs" / calculator.name / molecule.name
     output_directory.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory as tmpdir:
+    with tempfile.TemporaryDirectory() as tmpdir:
         docker_run_helper(image_name, tmpdir, molecule, calculator)
         resultfile = pathlib.Path(tmpdir)/"result.yml"
         assert resultfile.is_file(), "Did not find result.yml"

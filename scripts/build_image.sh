@@ -10,9 +10,9 @@ fi
 
 VERSION=$(git describe)
 
-if [[ ! "$VERSION" =~ "^$NAME/v*" ]]; then
+if [[ ! "$VERSION" =~ ^$NAME/v* ]]; then
     echo "Last tag did not confirm to naming spec $NAME/v1.1.1"
     exit 1
 fi
 
-docker build  --tag VERSION .
+docker build  --tag $VERSION .

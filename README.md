@@ -4,7 +4,7 @@ This repository contains the minimal code required to create an image required t
 Extra scripts / binaries you require will be included in the diadem\_image\_template/opt folder automatically.
 
 ## Getting started
-Clone this repository and rename it. Edit project\_config.sh and give it an appropiate name, such as `xtb_example`.
+Use this repository as a template for your repository and rename it. Edit project\_config.sh and give it an appropiate name, such as `xtb_example`. Install docker and start it (sudo systemctl enable docker, sudo systemctl start docker). Add yourself to the docker group (sudo gpasswd -a your\_user\_name docker). Reboot to make sure these changes took effect.
 
 ## Diadem Payload
 On the live server, your container will be executed in a working directory with the two files
@@ -45,7 +45,7 @@ Edit the diadem\_image\_template/env.yml file. This contains the specification o
 ### Example: XTB and openbabel environment
 We will now generate an environment containing XTB and openbabel. To start we installed Mambaforge for our architecture from here: https://github.com/conda-forge/miniforge . and set up an environment with the following script:
 
-    mamba create --name=xtbdevenv xtb=6.6.0 openbabel
+    mamba create --name=xtbdevenv xtb=6.6.0 openbabel python=3.11 pyyaml
     conda activate xtbdevenv
     mamba env export > env.yml
     cat env.yml
@@ -97,7 +97,7 @@ dependencies:
   - openbabel=3.1.1
   - python=3.11.*
   - xtb=6.6.0
-  - yaml=1.5.2 <- always include yaml, you need it to parse the input files.
+  - pyyaml=6.0.* <- always include yaml, you need it to parse the input files.
 ````
 We will edit this file to only include dependencies, we require directly and packages we care about, such as packages our own scripts requires (e.g. the python version). Note that we whitelisted all newer python point releases and also removed the build string (such as h031607). This will be fixed in the next stage. When you are happy with your environment file, move it to the diadem\_image\_template subfolder and commit it to the repository. If you require extra scripts or binaries put them in the diadem\_image\_template/opt subfolder. Remember to consider that you have to include the dependencies for your binaries in the conda env file. Next edit the file entrypoint.sh in the diadem\_image\_template subdirectory to start your program and generate the result.yml file. You can also generate an additional workdir\_bundle.tar.gz file, which will be staged out together with the actual results. This is meant for debugging purposes, so keep it small.
 
@@ -108,7 +108,7 @@ Inside the diadem\_image\_template folder: The env file is the file specifying, 
 To allow for automatic versioning of the image, add a tag, like this:
 
 ```
-    git tag -a "name_as_in_project_config.sh/v0.0.1" "First version definition"
+    git tag -a "name_as_in_project_config.sh/v0.0.1" -m "First version definition"
     git push origin "name_as_in_project_config.sh/v0.0.1"
 ```
 
