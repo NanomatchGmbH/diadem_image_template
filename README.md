@@ -101,6 +101,75 @@ dependencies:
 ````
 We will edit this file to only include dependencies, we require directly and packages we care about, such as packages our own scripts requires (e.g. the python version). Note that we whitelisted all newer python point releases and also removed the build string (such as h031607). This will be fixed in the next stage. When you are happy with your environment file, move it to the diadem\_image\_template subfolder and commit it to the repository. If you require extra scripts or binaries put them in the diadem\_image\_template/opt subfolder. Remember to consider that you have to include the dependencies for your binaries in the conda env file. Next edit the file entrypoint.sh in the diadem\_image\_template subdirectory to start your program and generate the result.yml file. You can also generate an additional workdir\_bundle.tar.gz file, which will be staged out together with the actual results. This is meant for debugging purposes, so keep it small.
 
+In our example, we will change the entrypoint in the following way:
+````{verbatim}
+#!/bin/bash
+
+# This file will start automatically in your docker run. You can assume the presence of a
+# molecule.yml and a calculator.yml in the work directory.
+
+# Make sure that after this script finishes a result.yml exists.
+# The workdir_bundle.tar.gz will also be staged out for debugging purposes, if you create it.
+
+python /opt/get_xtb_homo.py
+
+# A good way to pack all files smaller than e.g 500k for stageout is:
+find . -type f -size -500k -print0 | xargs -0 tar czf workdir_bundle.tar.gz
+````
+
+We are also going to add diadem\_image\_template/get\_xtb\_homo.py with the following content:
+````{verbatim}
+
+#!/usr/bin/env python3
+import yaml
+import subprocess
+import shlex
+
+with open("molecule.yml",'rt') as infile:
+    moldict = yaml.safe_load(infile)
+
+with open("calculator.yml",'rt') as infile:
+    calcdict = yaml.safe_load(infile)
+
+# The engine, which was instantiated needs to provide "provides" (e.g HOMO and LUMO)
+provides = calcdict["provides"]
+
+# This is a free form dictionary. For the example, we just provide numsteps
+steps = calcdict["specifications"]["numsteps"]
+
+#we read smiles and molid
+smiles = moldict["smiles"]
+molid = moldict["id"]
+
+# we generate a bad 3d structure
+command = f"obabel -:{smiles} -o xyz -O mol.xyz --gen3d"
+subprocess.check_output(shlex.split(command))
+
+# we optimize the bad 3d structure
+command = "xtb mol.xyz --opt"
+output = subprocess.check_output(shlex.split(command), encoding="utf8", text=True).split("\n")
+
+# we calculate homo and lumo
+command = "xtb xtbopt.xyz"
+output = subprocess.check_output(shlex.split(command), encoding="utf8", text=True).split("\n")
+
+with open("out.log",'wt') as outfile:
+    outfile.write("\n".join(output))
+
+resultdict =  { molid: {} }
+
+for line in output:
+    for tag in provides:
+        if f"({tag})" in line: # xtb logs homo lumo out as (HOMO) and (LUMO)
+            splitline = line.split()
+            value = float(splitline[-2])
+            resultdict[molid][tag] = value
+
+with open("result.yml",'wt') as outfile:
+    yaml.dump(resultdict, outfile)
+
+````
+
 ### Locking the environment
 Inside the diadem\_image\_template folder: The env file is the file specifying, what you need. For operational stability, we will now lock down, how the package manager fulfilled this request and record it. Call the script `../scripts/create_lock.sh`. Docker will now build a temporary image, install the environment and output an env.lock file. Commit it to the repository.
 
