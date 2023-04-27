@@ -1,4 +1,4 @@
-# Diadem Image Template
+ Diadem Image Template
 
 This repository contains the minimal code required to create an image required to run a scientific diadem  workload via the Azure Batch service. The general workflow is: You provide a conda environment file, which is rendered to an explicit conda.lock (fixing all package versions and md5s), which is then used to build the docker image.
 Extra scripts / binaries you require will be included in the diadem\_image\_template/opt folder automatically.
@@ -24,11 +24,11 @@ provides:
 - property_type_1_provided_by_calculator
 - property_type_2_provided_by_calculator
 - - ... 
-specifications:
+specification:
   some_setting: some_value
 ```
 
-For a DFT Payload specifications could include Basis, Functional, convergence criteria, etc. It does not have to be a flat dictionary. The only requirement is that it is serializable into a list of dicts of dicts of lists... of python base types. Your payload then runs and your job must output a file called result.yml according to the following spec:
+For a DFT Payload specification could include Basis, Functional, convergence criteria, etc. It does not have to be a flat dictionary. The only requirement is that it is serializable into a list of dicts of dicts of lists... of python base types. Your payload then runs and your job must output a file called result.yml according to the following spec:
 
 ```
 molecule_id:
@@ -50,7 +50,7 @@ calculator_id: XTB_example
 provides:
 - HOMO
 - LUMO
-specifications:
+specification:
   numsteps: 200
 ```
 
@@ -166,7 +166,7 @@ with open("calculator.yml",'rt') as infile:
 provides = calcdict["provides"]
 
 # This is a free form dictionary. For the example, we just provide numsteps
-steps = calcdict["specifications"]["numsteps"]
+steps = calcdict["specification"]["numsteps"]
 
 #we read smiles and molid
 smiles = moldict["smiles"]
