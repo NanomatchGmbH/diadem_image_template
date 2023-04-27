@@ -3,7 +3,7 @@ import yaml
 
 sample_calc = {
     "calculator_id": "XTB_example",
-    "specifications": { 
+    "specification": { 
         "numsteps": 200,
     },
     "provides": [
