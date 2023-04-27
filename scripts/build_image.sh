@@ -8,11 +8,20 @@ if [[ -z "$NAME" ]]; then
     exit 1
 fi
 
-VERSION=$(git describe)
+VERSION=$(git describe | sed 's#/v#:#g')
 
-if [[ ! "$VERSION" =~ ^$NAME/v* ]]; then
-    echo "Last tag did not confirm to naming spec $NAME/v1.1.1"
+if [[ ! "$VERSION" =~ ^$NAME:* ]]; then
+    echo "Last tag did not confirm to naming spec $NAME:1.1.1"
     exit 1
 fi
 
+echo "Building image $VERSION"
 docker build  --tag $VERSION .
+
+docker tag $VERSION diadem.azurecr.io/$VERSION
+echo "You can now push this image by logging in to azure with the supplied info by NM"
+echo "az login"
+echo "and then doing"
+echo "az acr login -n diadem"
+echo "and then push the image with"
+echo "docker push diadem.azurecr.io/$VERSION"
