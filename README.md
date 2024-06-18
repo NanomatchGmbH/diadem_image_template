@@ -217,5 +217,7 @@ This will alllow automatic tagging of generated images. Everytime you want to no
 ### Building the image
 Inside the diadem\_image\_template folder: Make sure there is nothing uncommited in the repository and call `../scripts/build_image.sh`. The image will be tagged with the output of git describe (i.e. the most current tag modified).
 
+**Note:** Check the output of the script `build_image.sh` for further instructions how to get the image onto Azure resources.
+
 ### Testing the image
 The image should now contain all dependencies required to execute your scientific software. If you run pytest, the image will be tested with all combinations of Calculators defined in `Calculators/*.yml` and `Molecules` defined in tests/inputs/molecules`. For every test done, a folder tests/calculator/molecule will be generated. If the test was successful, the generated result.yml will be put into this folder. Check it and add it to the repository, the next time a test is run, the two dictionaries will be compared and an error generated if they differ.
